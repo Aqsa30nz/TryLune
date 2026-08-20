@@ -41,3 +41,9 @@ Discover feed w/ AI Match Score, Product Details, Virtual Try-On + validation, R
 ## Next Tasks
 - Rehearse demo happy path + one failure (bad photo → validation blocks).
 - Optional: enable more hero garments/rooms.
+
+## Update 2026-06 — Real Try-On editing
+- Virtual Try-On now performs a REAL AI photo edit on the user's uploaded photo (Gemini Nano Banana via Emergent key, POST /api/visualize/tryon-edit): replaces only the garment while preserving face, pose, background, lighting, framing.
+- Result shown as a Before/After comparison slider (BeforeAfter.jsx) using the user's own photo as base; always re-edits from the ORIGINAL image, never a prior result.
+- Resilience: one automatic retry on empty model response; non-blocking garment fetch; garment buttons disabled during processing.
+- Room Visualization still uses representative pre-generated composites (unchanged, stated in UI footer).

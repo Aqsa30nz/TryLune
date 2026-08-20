@@ -2,19 +2,30 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShoppingBag, Shirt } from "lucide-react";
+import { toast } from "sonner";
 import api, { formatPrice } from "../lib/api";
 import UploadCapture from "../components/UploadCapture";
 import ValidationPanel from "../components/ValidationPanel";
 import ProcessingOverlay from "../components/ProcessingOverlay";
+import BeforeAfter from "../components/BeforeAfter";
 import { AiBadge } from "../components/AiBadge";
 import { useStore } from "../context/StoreContext";
+
+const EDIT_STAGES = [
+  "Detecting pose keypoints…",
+  "Segmenting current clothing…",
+  "Fitting garment to body…",
+  "Blending fabric, folds & shading…",
+  "Finalizing photo edit…",
+];
 
 export default function TryOn() {
   const [params] = useSearchParams();
   const { addToCart } = useStore();
   const [garments, setGarments] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState(null); // original base photo (never mutated)
+  const [edited, setEdited] = useState(null); // AI-edited result
   const [demoFail, setDemoFail] = useState(false);
   const [step, setStep] = useState("upload"); // upload | validated | processing | result
   const [validation, setValidation] = useState(null);
@@ -31,21 +42,46 @@ export default function TryOn() {
 
   const reset = () => {
     setImage(null);
+    setEdited(null);
     setValidation(null);
     setGen(null);
     setStep("upload");
+  };
+
+  // Always edit from the ORIGINAL uploaded photo (never re-edit a previous result)
+  const runEdit = async (product) => {
+    if (!image || !product) return;
+    setStep("processing");
+    setEdited(null);
+    try {
+      const { data } = await api.post("/visualize/tryon-edit", {
+        product_id: product.id,
+        user_image: image,
+      });
+      setEdited(data.result_image);
+      setGen(data);
+      setStep("result");
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Try-on edit failed. Please try again.");
+      setStep("upload");
+    }
   };
 
   const runValidate = async () => {
     const { data } = await api.post("/visualize/validate", { mode: "tryon", force_fail: demoFail });
     setValidation(data);
     if (data.valid) {
-      const res = await api.post("/visualize/generate", { mode: "tryon", product_id: selected.id });
-      setGen(res.data);
-      setStep("processing");
-      setTimeout(() => setStep("result"), res.data.duration_ms);
+      runEdit(selected);
     } else {
       setStep("validated");
+    }
+  };
+
+  const chooseGarment = (g) => {
+    setSelected(g);
+    // if we already have a valid photo + result, re-run the edit from the ORIGINAL image
+    if (image && (step === "result" || step === "processing")) {
+      runEdit(g);
     }
   };
 
@@ -57,7 +93,8 @@ export default function TryOn() {
         </p>
         <h1 className="font-display text-4xl sm:text-5xl tracking-tight leading-none">See it on you.</h1>
         <p className="text-sm text-[#525252] mt-2 max-w-xl">
-          Upload or capture a full-body photo, pass the input validation layer, then preview the garment.
+          Upload or capture a full-body photo, pass input validation, then we edit only the clothing on
+          your photo — your face, pose and background stay exactly the same.
         </p>
       </div>
 
@@ -72,8 +109,9 @@ export default function TryOn() {
               <button
                 key={g.id}
                 data-testid={`garment-${g.id}`}
-                onClick={() => { setSelected(g); if (step === "result") reset(); }}
-                className={`w-full flex items-center gap-3 p-2 border text-left transition-colors ${
+                disabled={step === "processing"}
+                onClick={() => chooseGarment(g)}
+                className={`w-full flex items-center gap-3 p-2 border text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   selected?.id === g.id ? "border-[#0033FF] bg-white" : "border-[#E5E5E5] bg-white hover:border-[#121212]"
                 }`}
               >
@@ -90,6 +128,11 @@ export default function TryOn() {
               </button>
             ))}
           </div>
+          {image && step === "result" && (
+            <p className="mt-3 font-mono-vn text-[10px] uppercase tracking-widest text-[#525252] leading-relaxed">
+              Switch garments to re-edit your original photo instantly.
+            </p>
+          )}
         </aside>
 
         {/* Stage */}
@@ -112,9 +155,14 @@ export default function TryOn() {
             </div>
 
             {step === "processing" ? (
-              <ProcessingOverlay image={image} stages={gen.stages} duration={gen.duration_ms} />
+              <ProcessingOverlay image={image} stages={EDIT_STAGES} duration={16000} />
             ) : (
-              <UploadCapture mode="tryon" image={image} onImage={(img) => { setImage(img); setStep("upload"); setValidation(null); }} onClear={reset} />
+              <UploadCapture
+                mode="tryon"
+                image={image}
+                onImage={(img) => { setImage(img); setEdited(null); setStep("upload"); setValidation(null); }}
+                onClear={reset}
+              />
             )}
 
             {image && step === "upload" && (
@@ -128,20 +176,17 @@ export default function TryOn() {
             )}
 
             {step === "validated" && validation && !validation.valid && (
-              <ValidationPanel
-                result={validation}
-                onRetry={() => reset()}
-              />
+              <ValidationPanel result={validation} onRetry={() => reset()} />
             )}
           </div>
 
           {/* Right column: result */}
           <div className="space-y-4">
             <span className="font-mono-vn text-[10px] uppercase tracking-widest text-[#525252]">
-              Try-on result
+              Try-on result · before / after
             </span>
             <AnimatePresence mode="wait">
-              {step === "result" && gen ? (
+              {step === "result" && edited ? (
                 <motion.div
                   key="result"
                   initial={{ opacity: 0, scale: 0.98 }}
@@ -150,13 +195,13 @@ export default function TryOn() {
                   className="border border-[#E5E5E5] bg-white"
                   data-testid="tryon-result"
                 >
-                  <div className="relative overflow-hidden">
-                    <img src={gen.result_image} alt="try-on result" className="w-full object-cover" />
-                    <div className="absolute top-3 left-3"><AiBadge score={selected.ai_match_score} /></div>
+                  <div className="relative">
+                    <BeforeAfter before={image} after={edited} />
+                    <div className="absolute bottom-3 left-3 z-10"><AiBadge score={selected.ai_match_score} /></div>
                   </div>
                   <div className="p-4 space-y-3">
                     <p className="font-mono-vn text-[10px] uppercase tracking-widest text-[#525252]">
-                      {gen.microcopy}
+                      {gen?.microcopy}
                     </p>
                     <div className="flex items-center justify-between">
                       <div>
@@ -178,10 +223,10 @@ export default function TryOn() {
                 </motion.div>
               ) : (
                 <div className="border border-dashed border-[#c9c9c4] bg-white aspect-[3/4] flex items-center justify-center text-center p-6" data-testid="result-placeholder">
-                  <p className="text-sm text-[#525252] max-w-[220px]">
+                  <p className="text-sm text-[#525252] max-w-[240px]">
                     {step === "processing"
-                      ? "Generating your try-on…"
-                      : "Your representative try-on preview will appear here."}
+                      ? "Editing your photo — replacing only the garment…"
+                      : "Your try-on preview will appear here as a before / after of your own photo."}
                   </p>
                 </div>
               )}

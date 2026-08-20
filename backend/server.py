@@ -16,6 +16,10 @@ from bson import ObjectId
 import bcrypt
 import jwt
 import uuid
+import base64
+import asyncio
+import requests
+from emergentintegrations.llm.chat import LlmChat, UserMessage, ImageContent
 
 # ---------------------------------------------------------------------------
 # DB
@@ -118,6 +122,11 @@ class ValidateInput(BaseModel):
 class GenerateInput(BaseModel):
     mode: str            # 'tryon' | 'room'
     product_id: str
+
+
+class TryOnEditInput(BaseModel):
+    product_id: str
+    user_image: str      # data URL of the user's uploaded/captured photo
 
 
 # ---------------------------------------------------------------------------
@@ -423,6 +432,83 @@ async def generate(payload: GenerateInput, user: dict = Depends(get_current_user
         "stages": stages,
         "duration_ms": 3000,
         "microcopy": "AI-generated representative visualization",
+    }
+
+
+TRYON_EDIT_PROMPT = (
+    "You are performing a precise virtual try-on PHOTO EDIT. You are given TWO images. "
+    "IMAGE 1 is the base photo of a real person. IMAGE 2 is a garment ('{garment}'). "
+    "Edit IMAGE 1 so the person is wearing the garment from IMAGE 2, replacing ONLY the "
+    "corresponding clothing on the person.\n\n"
+    "STRICT CONSTRAINTS:\n"
+    "- Keep the original background from IMAGE 1 completely unchanged.\n"
+    "- Keep the person's face, hairstyle, skin tone, body shape, pose, expression, and camera angle exactly unchanged.\n"
+    "- Keep the lighting, shadows, and overall composition identical.\n"
+    "- Do not crop, zoom, rotate, or reposition the image; keep the same framing and dimensions.\n"
+    "- Do not add or remove any objects from the scene.\n"
+    "- Only modify the clothing region, fitting the new garment with realistic fabric folds, "
+    "wrinkles, and natural shading that follow the body's proportions so it looks naturally worn.\n"
+    "- The result must look like a high-quality photo retouch of IMAGE 1, NOT a newly generated scene.\n"
+    "Return only the edited version of IMAGE 1."
+)
+
+
+def _strip_data_url(d: str) -> str:
+    if isinstance(d, str) and d.strip().startswith("data:") and "," in d:
+        return d.split(",", 1)[1]
+    return d
+
+
+@api_router.post("/visualize/tryon-edit")
+async def tryon_edit(payload: TryOnEditInput, user: dict = Depends(get_current_user)):
+    doc = await db.products.find_one({"id": payload.product_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if not doc.get("tryon_enabled"):
+        raise HTTPException(status_code=400, detail="This item does not support virtual try-on.")
+
+    user_b64 = _strip_data_url(payload.user_image)
+    if not user_b64:
+        raise HTTPException(status_code=400, detail="No photo provided.")
+
+    try:
+        resp = await asyncio.to_thread(requests.get, doc["image"], timeout=25)
+        resp.raise_for_status()
+        garment_b64 = base64.b64encode(resp.content).decode("utf-8")
+    except Exception as e:
+        logger.error("Garment fetch failed: %s", e)
+        raise HTTPException(status_code=502, detail="Could not load garment image. Please retry.")
+
+    images = None
+    last_err = None
+    for attempt in range(2):  # one automatic retry against transient no-image responses
+        try:
+            chat = LlmChat(
+                api_key=os.environ["EMERGENT_LLM_KEY"],
+                session_id=str(uuid.uuid4()),
+                system_message="You are a professional fashion photo retoucher performing virtual try-on garment replacement.",
+            )
+            chat.with_model("gemini", "gemini-3.1-flash-image-preview").with_params(modalities=["image", "text"])
+            msg = UserMessage(
+                text=TRYON_EDIT_PROMPT.format(garment=doc["name"]),
+                file_contents=[ImageContent(user_b64), ImageContent(garment_b64)],
+            )
+            _, images = await chat.send_message_multimodal_response(msg)
+            if images:
+                break
+        except Exception as e:
+            last_err = e
+            logger.error("Try-on edit attempt %d failed: %s", attempt + 1, e)
+
+    if not images:
+        logger.error("Try-on edit produced no image after retries. last_err=%s", last_err)
+        raise HTTPException(status_code=502, detail="Try-on edit failed. Please try again.")
+
+    img = images[0]
+    return {
+        "result_image": f"data:{img['mime_type']};base64,{img['data']}",
+        "microcopy": "AI photo edit — garment applied to your photo",
+        "product_id": payload.product_id,
     }
 
 

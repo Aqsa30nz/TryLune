@@ -27,7 +27,7 @@ function Shell({ children }) {
             <p className="text-sm text-[#525252]">AI shopping — Virtual Try-On & Room Visualization.</p>
           </div>
           <p className="font-mono-vn text-[10px] uppercase tracking-widest text-[#525252] max-w-sm sm:text-right">
-            Visual outputs are AI-generated representative visualizations. Live GPU inference available via the same FastAPI endpoint.
+            Try-On applies a real AI photo edit to your uploaded image. Room views use representative visualizations. Live GPU inference available via the same FastAPI endpoint.
           </p>
         </div>
       </footer>
