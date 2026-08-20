@@ -1,0 +1,139 @@
+{
+  "theme": "light",
+  "archetype": "High-End Editorial + Swiss Tech",
+  "typography": {
+    "headings": {
+      "fontFamily": "Playfair Display, serif",
+      "weights": ["400", "500", "700"],
+      "usage": "Hero sections, product titles, major section headers. MUST use tracking-tight."
+    },
+    "body": {
+      "fontFamily": "Manrope, sans-serif",
+      "weights": ["300", "400", "500", "600"],
+      "usage": "Paragraphs, UI labels, AI metrics, technical specs."
+    },
+    "accent": {
+      "fontFamily": "JetBrains Mono, monospace",
+      "weights": ["400", "500"],
+      "usage": "AI Match Scores, microcopy, tech tags, loading text."
+    },
+    "instructions": "Avoid generic sans-serif for headings. Never use 'Inter' for headings. Never center default headings."
+  },
+  "colors": {
+    "background": "#F9F9F6",
+    "surface": "#FFFFFF",
+    "text_primary": "#121212",
+    "text_secondary": "#525252",
+    "primary_accent": "#0033FF",
+    "secondary_accent": "#E05C3A",
+    "border": "#E5E5E5",
+    "ai_indicator": "#0033FF",
+    "instructions": "Do not use generic SaaS blue or AI purple (#7351B7). Stick to the stark contrast of #F9F9F6 and #121212 with #0033FF for AI highlights."
+  },
+  "visual_enhancers": [
+    "Grid Borders (Technical Look): Expose the skeleton for tech/AI sections. Use border-collapse style layouts with 1px border-border.",
+    "Generous whitespace (p-8 to p-12) for product breathing room. Cramped elements feel cheap.",
+    "Images should have no border radius (sharp edges) to maintain an editorial, high-fashion look.",
+    "Use monochromatic geometric labels for AI recommendations."
+  ],
+  "components_instructions": {
+    "buttons": "Sharp corners (rounded-none). Primary: bg-[#121212] text-white hover:bg-[#0033FF] hover:text-white transition-colors. Secondary: border border-[#121212] bg-transparent text-[#121212].",
+    "cards": "Flat, 1px border-[#E5E5E5], bg-white, no shadow. Sharp corners (rounded-none).",
+    "ai_score_badge": "Monospace font, bg-[#0033FF] text-white, px-2 py-1 text-xs uppercase tracking-widest.",
+    "inputs": "Shadcn standard but override radius to rounded-none. 1px border-[#E5E5E5] focus:ring-1 focus:ring-[#0033FF].",
+    "modals_drawers": "Use Radix/Shadcn Sheet for the Assess panel and Filters. Flat white background, no outer shadow, 1px left border."
+  },
+  "grids_and_layouts": {
+    "discover_feed": "Bento Grid Mode A (Tetris Grid). Asymmetric layout of products. Some col-span-full md:col-span-8, some col-span-4. Large gaps (gap-8 to gap-12). Leave empty cells if needed for tension.",
+    "product_details": "Split layout: 50% left for sticky large image, 50% right for scrollable product info and AI try-on CTA. Use h-screen for sticky left.",
+    "compare": "Side-by-side strict grid (grid-cols-2) with synchronized scrolling or simple table layout for specs.",
+    "navigation": "Solid background bg-[#F9F9F6]/90 backdrop-blur-md with 1px bottom border. MUST NOT be transparent over content."
+  },
+  "motion": {
+    "hover": "Images scale up slightly (scale-105) inside overflow-hidden container with transform 0.6s ease transition.",
+    "page_transitions": "Subtle fade and slight slide-up using framer-motion.",
+    "ai_processing": "Instead of generic spinners, use a 'scanning' line animation over the user's uploaded image (tracing beam effect) and monospace loading text (e.g., 'Analyzing room depth...')."
+  },
+  "accessibility": {
+    "contrast": "Ensure text color changes explicitly on hover. Text #525252 against #F9F9F6 meets APCA. Use #0033FF for clear focus rings.",
+    "motion": "Respect prefers-reduced-motion in framer-motion settings.",
+    "data_attributes": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case."
+  },
+  "media": {
+    "style": "High fashion, minimalist architecture. Desaturated or high-contrast imagery.",
+    "image_urls": {
+      "fashion_products": [
+        {
+          "url": "https://images.unsplash.com/photo-1771072428050-1492abb58f4a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwzfHxoaWdoJTIwZmFzaGlvbiUyMG1vZGVsJTIwbWluaW1hbHxlbnwwfHx8fDE3ODcyNTc0NDR8MA&ixlib=rb-4.1.0&q=85",
+          "category": "fashion_hero",
+          "description": "Woman in black suit with purse (discover feed / hero)"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1593528625646-d705402054ba?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwxfHxoaWdoJTIwZmFzaGlvbiUyMG1vZGVsJTIwbWluaW1hbHxlbnwwfHx8fDE3ODcyNTc0NDR8MA&ixlib=rb-4.1.0&q=85",
+          "category": "fashion_product_1",
+          "description": "Woman in black and white polka dot dress"
+        },
+        {
+          "url": "https://images.pexels.com/photos/7871177/pexels-photo-7871177.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+          "category": "fashion_product_2",
+          "description": "Elegant woman in black outfit posing"
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1765044145286-2320351f2f03?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2MzR8MHwxfHNlYXJjaHwyfHxoaWdoJTIwZmFzaGlvbiUyMG1vZGVsJTIwbWluaW1hbHxlbnwwfHx8fDE3ODcyNTc0NDR8MA&ixlib=rb-4.1.0&q=85",
+          "category": "fashion_product_3",
+          "description": "Woman in red blazer"
+        }
+      ],
+      "furniture_products": [
+        {
+          "url": "https://images.unsplash.com/photo-1567016376408-0226e4d0c1ea?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwZnVybml0dXJlJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzg3MjU3NDQ1fDA&ixlib=rb-4.1.0&q=85",
+          "category": "furniture_product_1",
+          "description": "Black and brown leather padded tub sofa"
+        },
+        {
+          "url": "https://images.pexels.com/photos/4278985/pexels-photo-4278985.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+          "category": "furniture_product_2",
+          "description": "Soft velvet green armchair"
+        }
+      ],
+      "room_visualizations": [
+        {
+          "url": "https://images.unsplash.com/photo-1724582586529-62622e50c0b3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBtaW5pbWFsaXN0JTIwZnVybml0dXJlJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzg3MjU3NDQ1fDA&ixlib=rb-4.1.0&q=85",
+          "category": "room_empty_1",
+          "description": "Empty modern living room with large window"
+        },
+        {
+          "url": "https://images.pexels.com/photos/6489084/pexels-photo-6489084.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+          "category": "room_empty_2",
+          "description": "Spacious contemporary new apartment room"
+        }
+      ]
+    }
+  },
+  "specific_flows": {
+    "virtual_try_on": "1. Upload/Capture Photo UX. 2. Validation layer (show checks for 'Full Body Detected', 'Good Lighting'). If fail, show [Retake]. 3. Processing State (framer-motion scanning effect + 'AI-generated representative visualization' microcopy). 4. Result composite.",
+    "room_visualization": "Same as Try-on. Validation checks for 'Room corners detected', 'Floor visible'. AI Composite output.",
+    "assess_panel": "A drawer or side panel that slides out, explaining the AI Match Score using technical but readable typography. E.g. 'Match 94% based on your recent searches for minimalist aesthetic.'",
+    "compare": "Side-by-side view highlighting differences in dimensions, AI match scores, and price."
+  },
+  "3d_libraries": {
+    "recommendation": "Use framer-motion for smooth 2D page transitions and the 'scanning' AI process overlay. No heavy 3D required for the core flow unless requested, keep it fast and responsive.",
+    "libraries_to_install": ["framer-motion", "lucide-react", "clsx", "tailwind-merge", "sonner"]
+  },
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic, 'on distribution' outputs. In frontend design, this creates what users call the 'AI slop' aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects carefully, but in this specific 'Editorial' theme, prefer solid surfaces with crisp 1px borders.",
+    "You MUST NOT apply universal transition (e.g. `transition: all`). Always add transitions for specific interactive elements.",
+    "You MUST NOT center align the app container, ie do not add `.App { text-align: center; }` in the css file.",
+    "Always use modern button styles. For this theme, use sharp (rounded-none) edges.",
+    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons. Use Phosphor or Lucide icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Main agent relies on these image URLs. Missing categories = main agent will use placeholder text which is FORBIDDEN.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use `sonner` for toasts.",
+    "All interactive and key informational elements MUST include a `data-testid` attribute."
+  ]
+}
