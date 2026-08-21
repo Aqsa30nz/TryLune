@@ -23,11 +23,11 @@ function Shell({ children }) {
       <footer className="border-t border-[#E5E5E5] mt-24">
         <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="font-display text-lg tracking-tight">VirtueNova</p>
-            <p className="text-sm text-[#525252]">AI shopping — Virtual Try-On & Room Visualization.</p>
+            <p className="font-display text-lg tracking-tight">TryLune</p>
+            <p className="text-sm text-[#525252]">AI shopping by VirtueNova — Virtual Try-On & Room Staging.</p>
           </div>
           <p className="font-mono-vn text-[10px] uppercase tracking-widest text-[#525252] max-w-sm sm:text-right">
-            Try-On applies a real AI photo edit to your uploaded image. Room views use representative visualizations. Live GPU inference available via the same FastAPI endpoint.
+            Try-On and Room Staging apply a real AI photo edit to your uploaded image — only the clothing, or the added furniture, changes. The rest of your photo is preserved.
           </p>
         </div>
       </footer>

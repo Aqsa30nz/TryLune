@@ -39,7 +39,7 @@ export default function Login() {
           <span className="w-7 h-7 bg-white text-[#121212] flex items-center justify-center">
             <Sparkles size={15} />
           </span>
-          <span className="font-display text-xl tracking-tight">VirtueNova</span>
+          <span className="font-display text-xl tracking-tight">TryLune</span>
         </div>
         <div>
           <p className="font-mono-vn text-[11px] uppercase tracking-widest text-[#0033FF] mb-4">
@@ -75,7 +75,7 @@ export default function Login() {
             <span className="w-7 h-7 bg-[#121212] text-white flex items-center justify-center">
               <Sparkles size={15} />
             </span>
-            <span className="font-display text-xl tracking-tight">VirtueNova</span>
+            <span className="font-display text-xl tracking-tight">TryLune</span>
           </div>
 
           <h2 className="font-display text-3xl tracking-tight">
@@ -141,7 +141,7 @@ export default function Login() {
           </form>
 
           <p className="text-sm text-[#525252] mt-6">
-            {mode === "login" ? "New to VirtueNova?" : "Already have an account?"}{" "}
+            {mode === "login" ? "New to TryLune?" : "Already have an account?"}{" "}
             <button
               data-testid="toggle-auth-mode"
               onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}

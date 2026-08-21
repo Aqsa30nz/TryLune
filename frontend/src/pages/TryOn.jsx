@@ -8,6 +8,7 @@ import UploadCapture from "../components/UploadCapture";
 import ValidationPanel from "../components/ValidationPanel";
 import ProcessingOverlay from "../components/ProcessingOverlay";
 import BeforeAfter from "../components/BeforeAfter";
+import SizeAnalysis from "../components/SizeAnalysis";
 import { AiBadge } from "../components/AiBadge";
 import { useStore } from "../context/StoreContext";
 
@@ -177,6 +178,10 @@ export default function TryOn() {
 
             {step === "validated" && validation && !validation.valid && (
               <ValidationPanel result={validation} onRetry={() => reset()} />
+            )}
+
+            {image && (
+              <SizeAnalysis productId={selected?.id} userImage={image} />
             )}
           </div>
 

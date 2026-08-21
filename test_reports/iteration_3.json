@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration 3 verification of TryLune's new/updated endpoints and Try-On + Room flows. Backend: added /app/backend/tests/test_analyze_and_room_edit.py with 11 pytest cases covering /api/analyze/body (auth, measurements-only -> M/Regular/93%/source=measurements, image-only -> lower confidence + estimated flags), /api/analyze/room (auth, 404, happy p7 returns room_dimensions_ft/clear_space_ft/furniture_dimensions_ft/fits/coverage_pct/verdict/notes), /api/visualize/room-edit (auth, 400 non-room p1, 404 unknown, happy p8 -> data:image/*;base64 payload with correct microcopy), and regression on /api/visualize/tryon-edit (p1). All 11/11 pass. Frontend Playwright E2E: login as admin, TryOn(/try-on?product=p1) -> choose-file-btn upload -> size-analysis card visible -> analyze-body-btn -> size-result shows M/Regular/82% -> visualize-btn -> processing-overlay -> tryon-result with BeforeAfter (data-testid=before-after). Room(/room?product=p7) -> upload -> visualize-btn -> processing-overlay -> room-result with BeforeAfter AND room-analysis card showing room=14x12 ft, furn=6.9x2.9 ft, fit-badge='Fits', verdict='Fits comfortably in the available space.'. Demo-fail path works for both TryOn and Room: validation-panel BLOCKED, processing-overlay absent, no edit endpoint call. Navbar/logo/login title show 'TryLune'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/visualize/room-edit and /api/visualize/tryon-edit", "issue": "Occasional 502 from Gemini (no image returned) — backend has no automatic retry; single hiccup surfaces directly to user. Same issue flagged in iteration 2 for tryon-edit."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Login page", "issue": "Branding leak — page still reads 'New to VirtueNova?' next to the 'Create an account' link. Rebrand requires this to say 'New to TryLune?'.", "selector": "/app/frontend/src/pages/Login.jsx:144", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_analyze_and_room_edit.py",
+    "/app/backend/tests/test_tryon_edit.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iteration3_results.xml"
+  ],
+  "action_items": [
+    "Rebrand Login.jsx line 144: replace 'New to VirtueNova?' with 'New to TryLune?' (the toggle-auth-mode link is fine).",
+    "(Optional resilience) Add a single automatic retry inside /api/visualize/tryon-edit and /api/visualize/room-edit when the Gemini call returns an empty images list, to eliminate the occasional user-visible 502."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 898 lines — recommend splitting into routers (auth, catalog, visualize, analyze, cart/wishlist) before adding more endpoints.",
+    "/api/visualize/room-edit and /api/visualize/tryon-edit both perform blocking network I/O via requests.get inside async endpoints when fetching the product image (via _fetch_image_b64 / requests.get). Prefer httpx.AsyncClient or run_in_executor.",
+    "No caching of product source images — each edit re-downloads the CDN image. In-memory cache keyed by product_id would materially speed up switch-garment / switch-piece re-runs and reduce cost.",
+    "Neither edit endpoint has retry logic when Gemini returns zero images; a single transient refusal surfaces as a 502 to the user.",
+    "RoomViz.jsx runs /analyze/room and /visualize/room-edit in parallel via Promise.allSettled — good; but if only analyze fails silently (rejected), the UI shows no error/notes to the user (analysis stays null). Consider a subtle toast when analysis fails but the edit succeeds.",
+    "/api/analyze/room always returns estimated: true regardless of whether the Gemini vision call actually succeeded — the fallback branch sets rw,rl,cw,cd to hardcoded 12/14/7/6 with a generic note but still marks estimated=true; consider adding source='vision'|'fallback' so the UI can distinguish and warn the user."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_analyze_and_room_edit.py"
+  ],
+  "success_rate": {"backend": "100% (11/11 new endpoint tests + prior 30/30 valid)", "frontend": "100% of tested flows (TryOn happy + demo-fail, Room happy + demo-fail, login, navbar branding)"},
+  "test_credentials": "admin@virtuenova.com / admin123 (seeded).",
+  "seed_data_creation": "None — used existing seeded products p1 (Fashion) and p7/p8 (Furniture) and admin user. Synthetic person/room JPEGs generated in /tmp/.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All four new/updated endpoints are verified: /api/analyze/body (auth-guarded, measurements=>M/Regular/93 conf, image-only=>lower conf w/ estimated=true), /api/analyze/room (auth, 404 unknown, ok on p7 returning room/clear/furniture dims + fits + coverage_pct + verdict), /api/visualize/room-edit (auth, 400 non-room, 404 unknown, ok on p8 returning data:image base64 + microcopy 'AI photo edit — furniture placed in your actual room'), and /api/visualize/tryon-edit still ok on p1. Frontend selectors used: choose-file-btn (or the hidden input[type=file]), garment-p1, furniture-p7, demo-fail-toggle input[type=checkbox], visualize-btn, processing-overlay, tryon-result, room-result, before-after, size-analysis, analyze-body-btn, size-result, recommended-size/-fit/confidence, room-analysis, room-dims, furniture-dims, fit-badge, room-verdict, validation-panel. Real edits take ~8-40s; poll up to 120s. One residual UI branding bug: Login.jsx still says 'New to VirtueNova?' — main agent should change it to 'New to TryLune?'.",
+  "rca of the issue": "Login.jsx line 144 hard-codes the string 'New to VirtueNova?' — the earlier rebrand pass updated the logo/navbar/title but missed this label. Fix: change 'New to VirtueNova?' to 'New to TryLune?'."
+}

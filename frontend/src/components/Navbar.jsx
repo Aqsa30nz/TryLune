@@ -27,7 +27,7 @@ export default function Navbar() {
           <span className="w-7 h-7 bg-[#121212] text-white flex items-center justify-center group-hover:bg-[#0033FF] transition-colors">
             <Sparkles size={15} />
           </span>
-          <span className="font-display text-xl tracking-tight">VirtueNova</span>
+          <span className="font-display text-xl tracking-tight">TryLune</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-8">

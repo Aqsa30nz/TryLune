@@ -2,21 +2,34 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, ShoppingBag, Sofa } from "lucide-react";
+import { toast } from "sonner";
 import api, { formatPrice } from "../lib/api";
 import UploadCapture from "../components/UploadCapture";
 import ValidationPanel from "../components/ValidationPanel";
 import ProcessingOverlay from "../components/ProcessingOverlay";
+import BeforeAfter from "../components/BeforeAfter";
+import RoomAnalysis from "../components/RoomAnalysis";
 import { AiBadge } from "../components/AiBadge";
 import { useStore } from "../context/StoreContext";
+
+const STAGE_TEXT = [
+  "Segmenting room & floor plane…",
+  "Estimating depth & perspective…",
+  "Measuring available space…",
+  "Placing furniture with correct scale…",
+  "Compositing shadows & occlusion…",
+];
 
 export default function RoomViz() {
   const [params] = useSearchParams();
   const { addToCart } = useStore();
   const [items, setItems] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState(null); // original room photo (never mutated)
+  const [edited, setEdited] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
   const [demoFail, setDemoFail] = useState(false);
-  const [step, setStep] = useState("upload");
+  const [step, setStep] = useState("upload"); // upload | validated | processing | result
   const [validation, setValidation] = useState(null);
   const [gen, setGen] = useState(null);
 
@@ -31,33 +44,55 @@ export default function RoomViz() {
 
   const reset = () => {
     setImage(null);
+    setEdited(null);
+    setAnalysis(null);
     setValidation(null);
     setGen(null);
     setStep("upload");
   };
 
+  // Always stage from the ORIGINAL room photo
+  const runPlace = async (product) => {
+    if (!image || !product) return;
+    setStep("processing");
+    setEdited(null);
+    const [aRes, eRes] = await Promise.allSettled([
+      api.post("/analyze/room", { product_id: product.id, room_image: image }),
+      api.post("/visualize/room-edit", { product_id: product.id, room_image: image }),
+    ]);
+    if (aRes.status === "fulfilled") setAnalysis(aRes.value.data);
+    if (eRes.status === "fulfilled") {
+      setEdited(eRes.value.data.result_image);
+      setGen(eRes.value.data);
+      setStep("result");
+    } else {
+      toast.error(eRes.reason?.response?.data?.detail || "Room staging failed. Please try again.");
+      setStep("upload");
+    }
+  };
+
   const runValidate = async () => {
     const { data } = await api.post("/visualize/validate", { mode: "room", force_fail: demoFail });
     setValidation(data);
-    if (data.valid) {
-      const res = await api.post("/visualize/generate", { mode: "room", product_id: selected.id });
-      setGen(res.data);
-      setStep("processing");
-      setTimeout(() => setStep("result"), res.data.duration_ms);
-    } else {
-      setStep("validated");
-    }
+    if (data.valid) runPlace(selected);
+    else setStep("validated");
+  };
+
+  const chooseItem = (g) => {
+    setSelected(g);
+    if (image && (step === "result" || step === "processing")) runPlace(g);
   };
 
   return (
     <div className="max-w-[1400px] mx-auto px-5 sm:px-8 py-10">
       <div className="mb-8">
         <p className="font-mono-vn text-[11px] uppercase tracking-widest text-[#0033FF] mb-3 flex items-center gap-2">
-          <Sofa size={13} /> Room Visualization Studio
+          <Sofa size={13} /> Room Staging Studio
         </p>
         <h1 className="font-display text-4xl sm:text-5xl tracking-tight leading-none">See it in your space.</h1>
         <p className="text-sm text-[#525252] mt-2 max-w-xl">
-          Upload or capture your room, pass validation, then stage the piece in a photoreal composite.
+          Upload or capture your room, pass validation, and we place the piece into your actual room —
+          your walls, floor, windows and existing furniture stay exactly the same.
         </p>
       </div>
 
@@ -71,8 +106,9 @@ export default function RoomViz() {
               <button
                 key={g.id}
                 data-testid={`furniture-${g.id}`}
-                onClick={() => { setSelected(g); if (step === "result") reset(); }}
-                className={`w-full flex items-center gap-3 p-2 border text-left transition-colors ${
+                disabled={step === "processing"}
+                onClick={() => chooseItem(g)}
+                className={`w-full flex items-center gap-3 p-2 border text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   selected?.id === g.id ? "border-[#0033FF] bg-white" : "border-[#E5E5E5] bg-white hover:border-[#121212]"
                 }`}
               >
@@ -89,6 +125,11 @@ export default function RoomViz() {
               </button>
             ))}
           </div>
+          {image && step === "result" && (
+            <p className="mt-3 font-mono-vn text-[10px] uppercase tracking-widest text-[#525252] leading-relaxed">
+              Switch pieces to re-stage your original room instantly.
+            </p>
+          )}
         </aside>
 
         <section className="grid md:grid-cols-2 gap-6">
@@ -109,9 +150,14 @@ export default function RoomViz() {
             </div>
 
             {step === "processing" ? (
-              <ProcessingOverlay image={image} stages={gen.stages} duration={gen.duration_ms} />
+              <ProcessingOverlay image={image} stages={STAGE_TEXT} duration={18000} />
             ) : (
-              <UploadCapture mode="room" image={image} onImage={(img) => { setImage(img); setStep("upload"); setValidation(null); }} onClear={reset} />
+              <UploadCapture
+                mode="room"
+                image={image}
+                onImage={(img) => { setImage(img); setEdited(null); setAnalysis(null); setStep("upload"); setValidation(null); }}
+                onClear={reset}
+              />
             )}
 
             {image && step === "upload" && (
@@ -127,14 +173,16 @@ export default function RoomViz() {
             {step === "validated" && validation && !validation.valid && (
               <ValidationPanel result={validation} onRetry={() => reset()} />
             )}
+
+            {analysis && step === "result" && <RoomAnalysis analysis={analysis} />}
           </div>
 
           <div className="space-y-4">
             <span className="font-mono-vn text-[10px] uppercase tracking-widest text-[#525252]">
-              Room composite
+              Staged result · before / after
             </span>
             <AnimatePresence mode="wait">
-              {step === "result" && gen ? (
+              {step === "result" && edited ? (
                 <motion.div
                   key="result"
                   initial={{ opacity: 0, scale: 0.98 }}
@@ -143,13 +191,13 @@ export default function RoomViz() {
                   className="border border-[#E5E5E5] bg-white"
                   data-testid="room-result"
                 >
-                  <div className="relative overflow-hidden">
-                    <img src={gen.result_image} alt="room result" className="w-full object-cover" />
-                    <div className="absolute top-3 left-3"><AiBadge score={selected.ai_match_score} /></div>
+                  <div className="relative">
+                    <BeforeAfter before={image} after={edited} />
+                    <div className="absolute bottom-3 left-3 z-10"><AiBadge score={selected.ai_match_score} /></div>
                   </div>
                   <div className="p-4 space-y-3">
                     <p className="font-mono-vn text-[10px] uppercase tracking-widest text-[#525252]">
-                      {gen.microcopy}
+                      {gen?.microcopy}
                     </p>
                     <div className="flex items-center justify-between">
                       <div>
@@ -171,10 +219,10 @@ export default function RoomViz() {
                 </motion.div>
               ) : (
                 <div className="border border-dashed border-[#c9c9c4] bg-white aspect-[3/2] flex items-center justify-center text-center p-6" data-testid="result-placeholder">
-                  <p className="text-sm text-[#525252] max-w-[220px]">
+                  <p className="text-sm text-[#525252] max-w-[240px]">
                     {step === "processing"
-                      ? "Compositing your room…"
-                      : "Your representative room composite will appear here."}
+                      ? "Staging your room — adding only the selected furniture…"
+                      : "Your staged room will appear here as a before / after of your own photo."}
                   </p>
                 </div>
               )}

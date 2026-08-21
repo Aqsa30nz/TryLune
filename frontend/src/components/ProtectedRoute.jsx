@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children }) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <span className="font-mono-vn text-sm text-[#525252] vn-blink">
-          Loading VirtueNova…
+          Loading TryLune…
         </span>
       </div>
     );
